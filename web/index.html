@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Aegis Control Plane</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <header class="mast">
+      <div class="brand">
+        <span class="mark" aria-hidden="true"></span>
+        <div>
+          <h1>Aegis Control Plane</h1>
+          <p>Governance · Crosswalk · Notarized Remediation</p>
+        </div>
+      </div>
+      <div class="mast-meta">
+        <span id="health-pill" class="pill warn">checking</span>
+        <span id="env-pill" class="pill">env</span>
+      </div>
+    </header>
+
+    <section class="stats" id="stats-row"></section>
+
+    <nav class="tabs" role="tablist">
+      <button class="tab on" data-tab="audit" type="button">Acquisition audit</button>
+      <button class="tab" data-tab="proofs" type="button">Proof-reports</button>
+      <button class="tab" data-tab="packages" type="button">Packages &amp; unlock</button>
+      <button class="tab" data-tab="ops" type="button">Enforcement loop</button>
+    </nav>
+
+    <main>
+      <section id="panel-audit" class="panel on">
+        <div class="grid-2">
+          <form id="audit-form" class="card">
+            <h2>Simulated target sweep</h2>
+            <p class="lede">
+              Builds a conservative telemetry estate from a public domain or API URL, then
+              crosswalks it through Worker 2. The engine does not contact the target host.
+            </p>
+            <label>
+              Target domain or HTTPS API
+              <input id="audit-target" name="target" required placeholder="https://api.example.com" />
+            </label>
+            <label>
+              Annual worldwide turnover (EUR)
+              <input id="audit-turnover" name="turnover" type="number" min="1" step="1" placeholder="250000000" />
+            </label>
+            <label>
+              Sweep size
+              <input id="audit-sweep" name="sweep" type="number" min="2" max="40" value="10" />
+            </label>
+            <button type="submit">Run audit &amp; seal proof</button>
+          </form>
+          <div class="card">
+            <h2>Last audit</h2>
+            <div id="audit-result" class="empty">No proof-report in this session yet.</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="panel-proofs" class="panel">
+        <div class="card">
+          <div class="row-head">
+            <h2>Immutable proof-reports</h2>
+            <button id="refresh-proofs" type="button" class="ghost">Refresh</button>
+          </div>
+          <div id="proof-list" class="table-wrap"></div>
+        </div>
+        <div class="card">
+          <h2>Cryptographic verification</h2>
+          <form id="verify-form" class="inline">
+            <input id="verify-id" required placeholder="prf_…" />
+            <button type="submit">Verify chain + HMAC</button>
+          </form>
+          <div id="verify-result" class="empty">Enter a <code>prf_</code> identifier.</div>
+        </div>
+        <div class="card">
+          <h2>Report dossier</h2>
+          <div id="report-detail" class="empty">Select a report from the table.</div>
+        </div>
+      </section>
+
+      <section id="panel-packages" class="panel">
+        <div class="grid-2">
+          <form id="package-form" class="card">
+            <h2>Stage license-locked patch</h2>
+            <label>
+              Proof-report ID
+              <input id="package-report-id" required placeholder="prf_…" />
+            </label>
+            <button type="submit">Generate package</button>
+            <div id="package-result" class="empty">Worker 3 output lands here. License keys are shown once.</div>
+          </form>
+          <form id="unlock-form" class="card">
+            <h2>Activate enterprise license</h2>
+            <label>
+              Package ID
+              <input id="unlock-package-id" required placeholder="acq_…" />
+            </label>
+            <label>
+              License key
+              <input id="unlock-license" required placeholder="AEGIS-ENT-…" autocomplete="off" />
+            </label>
+            <button type="submit">Unlock patch files</button>
+            <div id="unlock-result" class="empty">Unlocked artifacts render below.</div>
+          </form>
+        </div>
+        <div class="card">
+          <div class="row-head">
+            <h2>Staged packages</h2>
+            <button id="refresh-packages" type="button" class="ghost">Refresh</button>
+          </div>
+          <div id="package-list" class="table-wrap"></div>
+        </div>
+      </section>
+
+      <section id="panel-ops" class="panel">
+        <div class="grid-2">
+          <form id="tick-form" class="card">
+            <h2>Three-worker tick</h2>
+            <p class="lede">Worker 1 simulates telemetry, Worker 2 flags policy, Worker 3 stages PRs.</p>
+            <label>
+              Batch size
+              <input id="tick-size" type="number" min="1" max="50" value="8" />
+            </label>
+            <button type="submit">Run pipeline tick</button>
+            <div id="tick-result" class="empty">Awaiting a tick.</div>
+          </form>
+          <div class="card">
+            <h2>Index snapshot</h2>
+            <div id="index-snapshot" class="empty">Load stats from the pipeline.</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="row-head">
+            <h2>Cataloged events</h2>
+            <button id="refresh-ops" type="button" class="ghost">Refresh</button>
+          </div>
+          <div id="events-table" class="table-wrap"></div>
+        </div>
+        <div class="card">
+          <h2>Policy violations</h2>
+          <div id="violations-table" class="table-wrap"></div>
+        </div>
+        <div class="card">
+          <h2>Remediation pull requests</h2>
+          <div id="prs-table" class="table-wrap"></div>
+        </div>
+      </section>
+    </main>
+
+    <aside id="log" class="log" aria-live="polite"></aside>
+    <script src="/static/app.js"></script>
+  </body>
+</html>
