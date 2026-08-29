@@ -8,5 +8,7 @@ fi
 # shellcheck disable=SC1091
 source .venv/bin/activate
 python -m pip install -q -e ".[dev]"
-echo "Aegis dashboard → http://127.0.0.1:8080"
-exec python -m uvicorn api.app:app --host 127.0.0.1 --port 8080
+HOST="${HOST:-${AEGIS_HOST:-0.0.0.0}}"
+PORT="${PORT:-${AEGIS_PORT:-8080}}"
+echo "Aegis dashboard → http://${HOST}:${PORT}"
+exec python -m uvicorn api.app:app --host "$HOST" --port "$PORT"

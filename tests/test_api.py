@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from api.app import create_app
+from tests.conftest import API_KEY_HEADERS
 from tests.factories import transfer_event
 
 
@@ -10,19 +11,27 @@ def test_health_and_full_enforcement_loop():
     assert health.status_code == 200
     assert health.json()["status"] == "ok"
 
-    ingested = client.post("/telemetry/ingest", json=transfer_event().model_dump(mode="json"))
+    ingested = client.post(
+        "/api/telemetry/ingest",
+        json=transfer_event().model_dump(mode="json"),
+        headers=API_KEY_HEADERS,
+    )
     assert ingested.status_code == 200
     event_id = ingested.json()["event"]["event_id"]
 
-    crosswalk = client.post("/evaluations/crosswalk", params={"event_id": event_id})
+    crosswalk = client.post(
+        "/api/evaluations/crosswalk",
+        params={"event_id": event_id},
+        headers=API_KEY_HEADERS,
+    )
     assert crosswalk.status_code == 200
     assert crosswalk.json()["count"] >= 1
 
-    generated = client.post("/remediations/generate")
+    generated = client.post("/api/remediations/generate", headers=API_KEY_HEADERS)
     assert generated.status_code == 200
     assert generated.json()["count"] >= 1
 
-    listed = client.get("/remediations/pull-requests")
+    listed = client.get("/api/remediations/pull-requests", headers=API_KEY_HEADERS)
     assert listed.json()["count"] >= 1
     pr = listed.json()["pull_requests"][0]
     assert pr["files"]
@@ -31,7 +40,7 @@ def test_health_and_full_enforcement_loop():
 
 def test_pipeline_tick_returns_ids():
     client = TestClient(create_app())
-    response = client.post("/pipeline/tick", params={"batch_size": 5})
+    response = client.post("/api/pipeline/tick", params={"batch_size": 5}, headers=API_KEY_HEADERS)
     assert response.status_code == 200
     body = response.json()
     assert len(body["ingested_events"]) == 5
@@ -49,48 +58,53 @@ def test_dashboard_and_proof_verify_unlock():
     assert js.status_code == 200
 
     audit = client.post(
-        "/acquisition/audit",
+        "/api/acquisition/audit",
         json={"target": "https://api.acme.test/v1", "annual_turnover_eur": 1_000_000, "sweep_size": 3},
+        headers=API_KEY_HEADERS,
     )
     assert audit.status_code == 200
     report_id = audit.json()["report_id"]
     assert report_id.startswith("prf_")
-    verify = client.get(f"/acquisition/reports/{report_id}/verify")
+    verify = client.get(f"/api/acquisition/reports/{report_id}/verify", headers=API_KEY_HEADERS)
     assert verify.status_code == 200
     assert verify.json()["valid"] is True
     assert verify.json()["checks"]["hmac_signature"] is True
 
-    packaged = client.post(f"/acquisition/package/{report_id}")
+    packaged = client.post(f"/api/acquisition/package/{report_id}", headers=API_KEY_HEADERS)
     assert packaged.status_code == 200
     package_id = packaged.json()["package_id"]
     license_key = packaged.json()["license_key"]
     unlocked = client.post(
-        f"/acquisition/packages/{package_id}/unlock",
+        f"/api/acquisition/packages/{package_id}/unlock",
         json={"license_key": license_key},
+        headers=API_KEY_HEADERS,
     )
     assert unlocked.status_code == 200
     assert unlocked.json()["unlocked"] is True
     assert unlocked.json()["files"]
     client = TestClient(create_app())
     audit = client.post(
-        "/acquisition/audit",
+        "/api/acquisition/audit",
         json={"target": "https://api.northstar.example/v1/chat", "annual_turnover_eur": 250000000, "sweep_size": 3},
+        headers=API_KEY_HEADERS,
     )
     assert audit.status_code == 200
     report_id = audit.json()["report_id"]
     assert audit.json()["integrity"]["signature"]
-    packaged = client.post(f"/acquisition/package/{report_id}")
+    packaged = client.post(f"/api/acquisition/package/{report_id}", headers=API_KEY_HEADERS)
     assert packaged.status_code == 200
     body = packaged.json()
     assert body["executive_summary"]
     unlock = client.post(
-        "/acquisition/unlock",
+        "/api/acquisition/unlock",
         json={"license_key": body["license_key"], "sealed_patch": body["sealed_patch"]},
+        headers=API_KEY_HEADERS,
     )
     assert unlock.status_code == 200
     assert unlock.json()["unlocked"] is True
     denied = client.post(
-        "/acquisition/unlock",
+        "/api/acquisition/unlock",
         json={"license_key": "AEGIS-ENT-nope", "sealed_patch": body["sealed_patch"]},
+        headers=API_KEY_HEADERS,
     )
     assert denied.status_code == 403

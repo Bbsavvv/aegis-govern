@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -18,6 +19,7 @@ class Settings(BaseSettings):
     default_reviewers: tuple[str, ...] = ("security-approvers", "compliance-legal")
     default_base_branch: str = "main"
     signing_key: str = "dev-rotate-aegis-hmac-signing-key"
+    api_key: str = "dev-aegis-api-key"
     default_turnover_eur: float = 250_000_000.0
     acquisition_sweep_size: int = 10
 
@@ -25,3 +27,19 @@ class Settings(BaseSettings):
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     return Settings()
+
+
+def listen_host() -> str:
+    """Bind address. Railway (and any PORT-based PaaS) must use 0.0.0.0, not 127.0.0.1."""
+    explicit = os.environ.get("HOST") or os.environ.get("AEGIS_HOST")
+    if explicit:
+        return explicit
+    if os.environ.get("PORT") or os.environ.get("RAILWAY_ENVIRONMENT"):
+        return "0.0.0.0"
+    return "127.0.0.1"
+
+
+def listen_port() -> int:
+    """Railway injects PORT; fall back to 8080 for local runs."""
+    raw = os.environ.get("PORT") or os.environ.get("AEGIS_PORT") or "8080"
+    return int(raw)

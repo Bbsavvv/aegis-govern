@@ -1,5 +1,7 @@
 (function () {
   const LICENSE_STORE = "aegis.licenses";
+  const API_KEY_STORE = "aegis.apiKey";
+  const DEFAULT_API_KEY = "dev-aegis-api-key";
 
   function $(id) {
     return document.getElementById(id);
@@ -12,8 +14,38 @@
     el.prepend(line);
   }
 
+  function apiKey() {
+    const field = $("api-key");
+    if (field && field.value.trim()) return field.value.trim();
+    try {
+      return sessionStorage.getItem(API_KEY_STORE) || DEFAULT_API_KEY;
+    } catch (err) {
+      return DEFAULT_API_KEY;
+    }
+  }
+
+  function persistApiKey(value) {
+    try {
+      sessionStorage.setItem(API_KEY_STORE, value);
+    } catch (err) {
+      /* ignore quota / private mode */
+    }
+  }
+
+  function resolvePath(path) {
+    if (path === "/health" || path.indexOf("/health?") === 0) return path;
+    if (path.indexOf("/api/") === 0 || path === "/api") return path;
+    return "/api" + path;
+  }
+
   async function api(path, options) {
-    const response = await fetch(path, options);
+    options = options || {};
+    const resolved = resolvePath(path);
+    const headers = Object.assign({}, options.headers || {});
+    if (resolved === "/api" || resolved.indexOf("/api/") === 0) {
+      headers["X-API-Key"] = apiKey();
+    }
+    const response = await fetch(resolved, Object.assign({}, options, { headers: headers }));
     const text = await response.text();
     let data = null;
     try {
@@ -452,6 +484,18 @@
       log(err.message);
     });
   });
+
+  var apiKeyField = $("api-key");
+  if (apiKeyField) {
+    try {
+      apiKeyField.value = sessionStorage.getItem(API_KEY_STORE) || DEFAULT_API_KEY;
+    } catch (err) {
+      apiKeyField.value = DEFAULT_API_KEY;
+    }
+    apiKeyField.addEventListener("change", function () {
+      persistApiKey(apiKeyField.value.trim());
+    });
+  }
 
   Promise.all([refreshHealth(), refreshProofs(), refreshPackages(), refreshOps()]).catch(function (err) {
     log(err.message);

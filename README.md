@@ -77,13 +77,17 @@ python scripts/run_app.py
 
 Open `http://127.0.0.1:8080` for the control-plane UI and `http://127.0.0.1:8080/docs` for OpenAPI.
 
+On Railway the process binds `0.0.0.0:$PORT` (`railway.toml` / `Procfile`). Do not pin `127.0.0.1` or a hardcoded `8080` in the service start command.
+
+Protected JSON routes live under `/api/` and require header `X-API-Key` matching `AEGIS_API_KEY` (see `.env.example`). `/health`, `/`, `/static`, and `/docs` stay public. The dashboard sends the key from the header field (default `dev-aegis-api-key`).
+
 ### Additional acquisition routes
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/acquisition/reports/{report_id}/verify` | Recompute SHA-256 chain + HMAC-SHA256 seal |
-| `GET` | `/acquisition/packages/{package_id}` | Fetch a staged package (license omitted) |
-| `POST` | `/acquisition/packages/{package_id}/unlock` | Unlock files with the issued license key |
+| `GET` | `/api/acquisition/reports/{report_id}/verify` | Recompute SHA-256 chain + HMAC-SHA256 seal |
+| `GET` | `/api/acquisition/packages/{package_id}` | Fetch a staged package (license omitted) |
+| `POST` | `/api/acquisition/packages/{package_id}/unlock` | Unlock files with the issued license key |
 
 ```bash
 uvicorn api.app:app --host 0.0.0.0 --port 8080 --reload
@@ -95,27 +99,29 @@ Open `http://127.0.0.1:8080/docs` for the interactive schema.
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/health` | Liveness and store counters |
-| `POST` | `/telemetry/ingest` | Ingest one structured telemetry event |
-| `POST` | `/telemetry/ingest/batch` | Ingest many events |
-| `POST` | `/telemetry/simulate` | Worker 1 only: generate and catalog a simulated batch |
-| `GET` | `/telemetry/events` | List cataloged events |
-| `POST` | `/evaluations/crosswalk` | Worker 2: evaluate one `event_id` or all pending events |
-| `GET` | `/evaluations/violations` | List policy findings |
-| `POST` | `/remediations/generate` | Worker 3: stage PRs for open violations |
-| `GET` | `/remediations/pull-requests` | Fetch staged remediation PRs |
-| `POST` | `/pipeline/tick` | Run the full three-worker loop once |
-| `POST` | `/pipeline/ingest` | Run the full loop against caller-supplied events |
-| `POST` | `/acquisition/audit` | Simulated domain/API sweep → sealed Compliance Failure Proof-Report |
-| `POST` | `/acquisition/package/{report_id}` | Worker 3 extension: executive summary + license-locked patch bundle |
-| `POST` | `/acquisition/unlock` | Materialize patch files with an activated enterprise license |
-| `GET` | `/acquisition/reports` | List sealed proof-reports |
+| `GET` | `/health` | Liveness and store counters (no API key) |
+| `POST` | `/api/telemetry/ingest` | Ingest one structured telemetry event |
+| `POST` | `/api/telemetry/ingest/batch` | Ingest many events |
+| `POST` | `/api/telemetry/simulate` | Worker 1 only: generate and catalog a simulated batch |
+| `GET` | `/api/telemetry/events` | List cataloged events |
+| `POST` | `/api/evaluations/crosswalk` | Worker 2: evaluate one `event_id` or all pending events |
+| `GET` | `/api/evaluations/violations` | List policy findings |
+| `POST` | `/api/remediations/generate` | Worker 3: stage PRs for open violations |
+| `GET` | `/api/remediations/pull-requests` | Fetch staged remediation PRs |
+| `POST` | `/api/pipeline/tick` | Run the full three-worker loop once |
+| `POST` | `/api/pipeline/ingest` | Run the full loop against caller-supplied events |
+| `POST` | `/api/acquisition/audit` | Simulated domain/API sweep → sealed Compliance Failure Proof-Report |
+| `POST` | `/api/acquisition/package/{report_id}` | Worker 3 extension: executive summary + license-locked patch bundle |
+| `POST` | `/api/acquisition/unlock` | Materialize patch files with an activated enterprise license |
+| `GET` | `/api/acquisition/reports` | List sealed proof-reports |
 
 Example — generate traffic and collect remediations:
 
 ```bash
-curl -s -X POST "http://127.0.0.1:8080/pipeline/tick?batch_size=8" | python -m json.tool
-curl -s "http://127.0.0.1:8080/remediations/pull-requests" | python -m json.tool
+curl -s -X POST "http://127.0.0.1:8080/api/pipeline/tick?batch_size=8" \
+  -H "X-API-Key: ${AEGIS_API_KEY:-dev-aegis-api-key}" | python -m json.tool
+curl -s "http://127.0.0.1:8080/api/remediations/pull-requests" \
+  -H "X-API-Key: ${AEGIS_API_KEY:-dev-aegis-api-key}" | python -m json.tool
 ```
 
 ## Regulatory mapping

@@ -12,6 +12,7 @@ from starlette.responses import Response
 
 from aegis_core.config import get_settings
 from aegis_core.store import get_store
+from api.middleware import ApiKeyMiddleware
 from api.routers import acquisition, crosswalk, pipeline, remediation, telemetry
 
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
@@ -39,17 +40,19 @@ def create_app() -> FastAPI:
         ),
     )
     app.add_middleware(SecurityHeadersMiddleware)
+    app.add_middleware(ApiKeyMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
         allow_methods=["*"],
-        allow_headers=["*"],
+        allow_headers=["*", "X-API-Key"],
+        expose_headers=["WWW-Authenticate"],
     )
-    app.include_router(telemetry.router)
-    app.include_router(crosswalk.router)
-    app.include_router(remediation.router)
-    app.include_router(pipeline.router)
-    app.include_router(acquisition.router)
+    app.include_router(telemetry.router, prefix="/api")
+    app.include_router(crosswalk.router, prefix="/api")
+    app.include_router(remediation.router, prefix="/api")
+    app.include_router(pipeline.router, prefix="/api")
+    app.include_router(acquisition.router, prefix="/api")
 
     @app.get("/health")
     def health() -> dict:
@@ -75,4 +78,11 @@ app = create_app()
 def run() -> None:
     import uvicorn
 
-    uvicorn.run("api.app:app", host="127.0.0.1", port=8080, reload=False)
+    from aegis_core.config import listen_host, listen_port
+
+    uvicorn.run(
+        "api.app:app",
+        host=listen_host(),
+        port=listen_port(),
+        reload=False,
+    )

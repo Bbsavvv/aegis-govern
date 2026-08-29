@@ -2,9 +2,14 @@ from __future__ import annotations
 
 import uvicorn
 
+from aegis_core.config import listen_host, listen_port
+
 
 def main() -> None:
-    uvicorn.run("api.app:app", host="127.0.0.1", port=8080, reload=False)
+    host = listen_host()
+    port = listen_port()
+    print(f"Aegis dashboard → http://{host}:{port}")
+    uvicorn.run("api.app:app", host=host, port=port, reload=False)
 
 
 if __name__ == "__main__":
